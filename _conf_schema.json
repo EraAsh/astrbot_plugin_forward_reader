@@ -8,7 +8,7 @@
   "enable_reply_analysis": {
     "description": "自动分析被引用的转发消息",
     "type": "bool",
-    "default": true,
+    "default": false,
     "hint": "开启后，当用户回复一条合并转发消息时，机器人会自动进行分析。"
   }
 }

@@ -1,6 +1,7 @@
 name: astrbot_plugin_forward_reader
+display_name: Forward Reader # 用于展示的名字，可以是方便人类阅读的名字（需要版本 >= v4.5.0，低版本不会报错，请放心填写）
 desc: 一个使用 LLM 分析合并转发消息内容的插件。
-version: 1.1.1
+version: 1.2.2
 author: EraAsh
 repo: https://github.com/EraAsh/astrbot_plugin_forward_reader
 tags: ["工具", "LLM", "消息处理"]
