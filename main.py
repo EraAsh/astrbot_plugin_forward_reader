@@ -1,5 +1,5 @@
 """
-Forward Reader v2.0.2 - 智能合并转发消息分析插件
+Forward Reader v2.0.0 - 智能合并转发消息分析插件
 核心设计理念：
 - 完全模拟真人对话，无任何技术痕迹
 - 智能感知用户意图，无需显式指令
@@ -14,7 +14,7 @@ Forward Reader v2.0.2 - 智能合并转发消息分析插件
 - Token预算控制与分段摘要
 
 作者: EraAsh
-版本: 2.0.2
+版本: 2.0.0
 许可证: AGPL-3.0
 """
 
@@ -602,12 +602,12 @@ class TokenBudgetController:
     "forward_reader",
     "EraAsh",
     "智能感知合并转发消息，支持多模态分析，全链路日志追踪，消息去重与性能优化",
-    "2.0.2",
+    "2.0.0",
     "https://github.com/EraAsh/astrbot_plugin_forward_reader"
 )
 class ForwardReader(Star):
     """
-    智能合并转发消息阅读器 v2.0.2
+    智能合并转发消息阅读器 v2.0.0
 
     修复内容：
     1. 修复配置系统，移除冗余的vision_llm_provider字段
@@ -694,7 +694,7 @@ class ForwardReader(Star):
         asyncio.create_task(self.dedup_cache.start_cleanup_task())
 
         self.slogger.info("init", "plugin_initialized",
-                         "ForwardReader v2.0.2 初始化完成",
+                         "ForwardReader v2.0.0 初始化完成",
                          dedup_ttl=dedup_ttl, token_budget=token_budget)
 
     def _load_config(self):
