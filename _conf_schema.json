@@ -51,18 +51,12 @@
         "default": true,
         "hint": "开启后，如果合并消息中包含图片/视频，会尝试使用多模态模型进行分析。"
       },
-      "vision_llm_provider": {
-        "description": "视觉识别专用模型提供商",
+      "vision_provider_id": {
+        "description": "多模态视觉模型提供商（可选）",
         "type": "string",
-        "hint": "从 AstrBot 已添加的提供商中选择用于图片/视频识别的专用模型提供商。留空则使用当前默认提供商。",
+        "hint": "从 AstrBot 提供商列表中手动选择用于多模态分析的提供商。留空时沿用 AstrBot 当前默认提供商。",
         "_special": "select_provider",
         "default": ""
-      },
-      "custom_vision_model": {
-        "description": "自定义视觉模型ID",
-        "type": "string",
-        "default": "",
-        "hint": "当vision_llm_provider选择custom时，在此填写自定义模型ID（如：gpt-4-vision-preview、claude-3-5-sonnet-20241022等）。留空则使用全局配置。"
       },
       "max_images": {
         "description": "最大图片数量",
@@ -88,6 +82,18 @@
         "type": "bool",
         "default": true,
         "hint": "开启后，多张图片会批量预处理并生成统一摘要，避免逐张调用导致的Token浪费。"
+      },
+      "media_request_timeout": {
+        "description": "媒体探测超时(秒)",
+        "type": "float",
+        "default": 10.0,
+        "hint": "图片URL可用性探测请求超时时间。QQ临时资源建议8~15秒。"
+      },
+      "media_retry_times": {
+        "description": "媒体探测重试次数",
+        "type": "int",
+        "default": 2,
+        "hint": "图片URL探测失败时的重试次数。值越高越稳，但耗时会增加。"
       }
     }
   },

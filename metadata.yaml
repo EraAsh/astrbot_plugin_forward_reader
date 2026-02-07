@@ -1,6 +1,6 @@
 name: astrbot_plugin_forward_reader
 desc: 智能感知合并转发消息，支持多模态分析，以自然语言方式交互分析聊天记录，完全模拟真人对话风格。
-version: "2.0.1"
+version: "2.0.2"
 author: EraAsh
 repo: https://github.com/EraAsh/astrbot_plugin_forward_reader
 tags: 
