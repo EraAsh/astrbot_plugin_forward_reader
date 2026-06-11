@@ -1,5 +1,10 @@
 """
-Forward Reader v2.0.0 - 智能合并转发消息分析插件
+ForwardReader v2.1.0 智能合并转发消息分析插件
+
+v2.1.0 更新：
+- 修复人格丢失：手动多模态提供商现复用框架 persona
+- 新增 require_at_mention 配置项：引用转发需同时@机器人才触发
+- 修复分析结果不入对话历史：create_if_not_exists=True
 核心设计理念：
 - 完全模拟真人对话，无任何技术痕迹
 - 智能感知用户意图，无需显式指令
@@ -14,7 +19,7 @@ Forward Reader v2.0.0 - 智能合并转发消息分析插件
 - Token预算控制与分段摘要
 
 作者: EraAsh
-版本: 2.0.0
+版本: 2.1.0
 许可证: AGPL-3.0
 """
 
@@ -602,7 +607,7 @@ class TokenBudgetController:
     "forward_reader",
     "EraAsh",
     "智能感知合并转发消息，支持多模态分析，全链路日志追踪，消息去重与性能优化",
-    "2.0.0",
+    "2.1.0",
     "https://github.com/EraAsh/astrbot_plugin_forward_reader"
 )
 class ForwardReader(Star):
@@ -703,6 +708,7 @@ class ForwardReader(Star):
         self.enable_direct_analysis = self.config.get("enable_direct_analysis", False)
         self.enable_reply_analysis = self.config.get("enable_reply_analysis", True)
         self.enable_proactive_reply = self.config.get("enable_proactive_reply", False)
+        self.require_at_mention = self.config.get("require_at_mention", False)
         self.sensitivity = self.config.get("sensitivity", 0.7)
         self.max_messages = self.config.get("max_messages", 200)
         self.show_thinking = self.config.get("show_thinking", True)
@@ -998,6 +1004,14 @@ class ForwardReader(Star):
 
         # 场景A：引用消息（最推荐）
         if self.enable_reply_analysis and reply_seg:
+            # Issue #3: 如果开启 require_at_mention，需要同时 @机器人
+            if self.require_at_mention:
+                is_at_bot = any(isinstance(seg, Comp.At) for seg in event.message_obj.message)
+                if not (is_at_bot or event.is_at_or_wake_command):
+                    self.slogger.info(trace_id, "analysis_gate",
+                                     "引用转发但未@机器人，require_at_mention 模式下跳过")
+                    return
+
             try:
                 reply_forward_id, reply_forward_payload = await self._extract_forward_from_reply(event, reply_seg)
                 if reply_forward_id or reply_forward_payload:
@@ -1818,13 +1832,14 @@ class ForwardReader(Star):
             return None
 
         try:
+            system_prompt = self._get_persona_prompt()
             response = await provider.text_chat(
                 prompt=prompt,
                 session_id=None,
                 contexts=[],
                 image_urls=image_urls,
                 func_tool=None,
-                system_prompt="你是一个专业的聊天记录分析助手。"
+                system_prompt=system_prompt
             )
             if response and response.role == "assistant" and response.completion_text:
                 return response.completion_text
@@ -1837,6 +1852,24 @@ class ForwardReader(Star):
             )
 
         return None
+
+    def _get_persona_prompt(self) -> str:
+        """获取当前会话的人格提示词，回退到通用分析助手。"""
+        try:
+            provider_helper = getattr(self.context, "provider_manager", None)
+            if provider_helper:
+                curr_provider = getattr(provider_helper, "curr_provider_inst", None)
+                if curr_provider:
+                    persona = getattr(curr_provider, "persona", None)
+                    if isinstance(persona, str) and persona.strip():
+                        return persona
+                    if callable(getattr(curr_provider, "get_persona", None)):
+                        p = curr_provider.get_persona()
+                        if isinstance(p, str) and p.strip():
+                            return p
+        except Exception:
+            pass
+        return "你是一个专业的聊天记录分析助手。"
 
     def _generate_analysis_prompt(
         self,
@@ -1969,7 +2002,7 @@ class ForwardReader(Star):
             return False
 
         try:
-            conv = await cm.get_conversation(uid, cid, create_if_not_exists=False)
+            conv = await cm.get_conversation(uid, cid, create_if_not_exists=True)
             if not conv:
                 self.slogger.warning(trace_id, "context_write", "仅发送成功但未入上下文：会话未就绪", source=source, cid=cid)
                 return False
