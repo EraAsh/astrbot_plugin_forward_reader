@@ -23,6 +23,12 @@
     "default": false,
     "hint": "开启后，当用户@机器人或触发唤醒词发送合并转发时，Bot会主动分析。"
   },
+  "require_at_mention": {
+    "description": "引用分析需同时@机器人",
+    "type": "bool",
+    "default": false,
+    "hint": "开启后，引用合并转发消息时必须同时@机器人才会触发分析，避免群友随意引用转发就触发。"
+  },
   "sensitivity": {
     "description": "智能感知灵敏度",
     "type": "float",
