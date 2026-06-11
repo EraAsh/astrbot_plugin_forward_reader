@@ -12,4 +12,4 @@ tags:
   - "多模态"
 license: "AGPL-3.0"
 python_version: ">=3.8"
-astrbot_version: ">=3.4.0"
+astrbot_version: ">=3.4.0,<5"
