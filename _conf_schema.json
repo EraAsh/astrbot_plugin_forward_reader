@@ -79,7 +79,11 @@
       "image_quality": {
         "description": "图片质量模式",
         "type": "string",
-        "options": ["auto", "high", "low"],
+        "options": [
+          "auto",
+          "high",
+          "low"
+        ],
         "default": "auto",
         "hint": "图片发送给LLM的质量模式。high=高清（消耗更多Token），low=低清（节省Token），auto=根据内容自动选择。"
       },
@@ -164,7 +168,12 @@
       "log_level": {
         "description": "日志级别",
         "type": "string",
-        "options": ["DEBUG", "INFO", "WARNING", "ERROR"],
+        "options": [
+          "DEBUG",
+          "INFO",
+          "WARNING",
+          "ERROR"
+        ],
         "default": "INFO",
         "hint": "插件日志输出级别。DEBUG显示所有追踪信息，INFO显示关键节点，WARNING仅显示警告和错误。"
       },

@@ -43,7 +43,10 @@ import astrbot.api.message_components as Comp
 
 # 平台适配检查
 try:
-    from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
+    from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import (
+        AiocqhttpMessageEvent,
+    )
+
     IS_AIOCQHTTP = True
 except ImportError:
     IS_AIOCQHTTP = False
@@ -52,6 +55,7 @@ except ImportError:
 
 class AnalysisState(Enum):
     """分析状态机状态"""
+
     IDLE = auto()
     PENDING = auto()
     ANALYZING = auto()
@@ -60,6 +64,7 @@ class AnalysisState(Enum):
 
 class AnalysisPriority(Enum):
     """分析优先级"""
+
     MANUAL = 2
     AUTO = 1
 
@@ -67,6 +72,7 @@ class AnalysisPriority(Enum):
 @dataclass
 class MediaContent:
     """媒体内容数据结构"""
+
     type: str
     url: str
     base64_data: Optional[str] = None
@@ -77,6 +83,7 @@ class MediaContent:
 @dataclass
 class ChatContext:
     """聊天记录上下文数据结构"""
+
     sender: str
     content: str
     has_image: bool = False
@@ -88,6 +95,7 @@ class ChatContext:
 @dataclass
 class AnalysisResult:
     """分析结果数据结构"""
+
     success: bool
     content: str = ""
     error_type: Optional[str] = None
@@ -101,6 +109,7 @@ class AnalysisResult:
 @dataclass
 class AnalysisTask:
     """分析任务数据结构"""
+
     task_id: str
     forward_id: str
     event: AstrMessageEvent
@@ -117,6 +126,7 @@ class AnalysisTask:
 @dataclass
 class PerformanceMetrics:
     """性能指标数据结构"""
+
     start_time: float = field(default_factory=time.time)
     llm_start_time: Optional[float] = None
     llm_end_time: Optional[float] = None
@@ -139,7 +149,9 @@ class PerformanceMetrics:
 class StructuredLogger:
     """结构化日志追踪器"""
 
-    def __init__(self, plugin_name: str, log_level: str = "INFO", enable_trace: bool = False):
+    def __init__(
+        self, plugin_name: str, log_level: str = "INFO", enable_trace: bool = False
+    ):
         self.plugin_name = plugin_name
         self.log_level = log_level.upper()
         self.enable_trace = enable_trace
@@ -150,7 +162,9 @@ class StructuredLogger:
         timestamp = int(time.time() * 1000)
         return f"{timestamp:013x}-{self._trace_id_counter:04x}"
 
-    def _format_log(self, level: str, trace_id: str, stage: str, message: str, extra: Dict = None) -> str:
+    def _format_log(
+        self, level: str, trace_id: str, stage: str, message: str, extra: Dict = None
+    ) -> str:
         extra_str = ""
         if extra:
             extra_str = " | " + " ".join([f"{k}={v}" for k, v in extra.items()])
@@ -172,13 +186,17 @@ class StructuredLogger:
     def performance(self, trace_id: str, metrics: PerformanceMetrics, **kwargs):
         llm_duration = metrics.llm_duration
         llm_duration_str = f"{llm_duration:.2f}s" if llm_duration else "N/A"
-        logger.info(self._format_log(
-            "PERF", trace_id, "performance",
-            f"总耗时={metrics.total_duration:.2f}s LLM耗时={llm_duration_str} "
-            f"Token输入={metrics.token_input} Token输出={metrics.token_output} "
-            f"图片={metrics.image_count} 视频={metrics.video_count}",
-            kwargs
-        ))
+        logger.info(
+            self._format_log(
+                "PERF",
+                trace_id,
+                "performance",
+                f"总耗时={metrics.total_duration:.2f}s LLM耗时={llm_duration_str} "
+                f"Token输入={metrics.token_input} Token输出={metrics.token_output} "
+                f"图片={metrics.image_count} 视频={metrics.video_count}",
+                kwargs,
+            )
+        )
 
 
 class MessageDeduplicationCache:
@@ -190,11 +208,15 @@ class MessageDeduplicationCache:
         self._lock = asyncio.Lock()
         self._cleanup_task: Optional[asyncio.Task] = None
 
-    def _generate_hash(self, forward_id: str, user_id: str, group_id: Optional[str]) -> str:
+    def _generate_hash(
+        self, forward_id: str, user_id: str, group_id: Optional[str]
+    ) -> str:
         content = f"{forward_id}:{user_id}:{group_id or ''}"
         return hashlib.md5(content.encode()).hexdigest()
 
-    async def is_duplicate(self, forward_id: str, user_id: str, group_id: Optional[str]) -> bool:
+    async def is_duplicate(
+        self, forward_id: str, user_id: str, group_id: Optional[str]
+    ) -> bool:
         msg_hash = self._generate_hash(forward_id, user_id, group_id)
         async with self._lock:
             if msg_hash in self._cache:
@@ -327,7 +349,7 @@ class MediaBatchProcessor:
         max_images: int = 5,
         max_videos: int = 2,
         request_timeout: float = 10.0,
-        retry_times: int = 2
+        retry_times: int = 2,
     ):
         self.max_images = max_images
         self.max_videos = max_videos
@@ -339,7 +361,7 @@ class MediaBatchProcessor:
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=max(5.0, self.request_timeout)),
-                connector=aiohttp.TCPConnector(limit=12, limit_per_host=6, ssl=False)
+                connector=aiohttp.TCPConnector(limit=12, limit_per_host=6, ssl=False),
             )
         return self._session
 
@@ -358,10 +380,10 @@ class MediaBatchProcessor:
     def _build_request_headers(self, url: str) -> Dict[str, str]:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                          "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
             "Accept-Language": "zh-CN,zh;q=0.9",
-            "Referer": "https://nt.qq.com/"
+            "Referer": "https://nt.qq.com/",
         }
         try:
             host = (urlparse(url).netloc or "").lower()
@@ -384,7 +406,12 @@ class MediaBatchProcessor:
             try:
                 req_headers = dict(headers)
                 req_headers["Range"] = "bytes=0-1023"
-                async with session.get(url, headers=req_headers, timeout=self.request_timeout, allow_redirects=True) as response:
+                async with session.get(
+                    url,
+                    headers=req_headers,
+                    timeout=self.request_timeout,
+                    allow_redirects=True,
+                ) as response:
                     if response.status in (200, 206):
                         ctype = (response.headers.get("Content-Type") or "").lower()
                         if "image" in ctype or ctype == "":
@@ -408,12 +435,11 @@ class MediaBatchProcessor:
         return False, last_error or "probe_failed"
 
     async def process_media_batch(
-        self,
-        media_list: List[MediaContent],
-        trace_id: str,
-        slogger: StructuredLogger
+        self, media_list: List[MediaContent], trace_id: str, slogger: StructuredLogger
     ) -> Tuple[List[str], str]:
-        slogger.debug(trace_id, "media_preprocess", f"开始批量预处理 {len(media_list)} 个媒体文件")
+        slogger.debug(
+            trace_id, "media_preprocess", f"开始批量预处理 {len(media_list)} 个媒体文件"
+        )
 
         image_urls: List[str] = []
         video_count = 0
@@ -432,15 +458,27 @@ class MediaBatchProcessor:
                     if ok:
                         image_urls.append(url)
                         media.processed = True
-                        slogger.debug(trace_id, "media_preprocess", "图片可用",
-                                     reason=reason, preview=url[:64])
+                        slogger.debug(
+                            trace_id,
+                            "media_preprocess",
+                            "图片可用",
+                            reason=reason,
+                            preview=url[:64],
+                        )
                     else:
                         failed_images.append(f"{url[:80]} | {reason}")
-                        slogger.warning(trace_id, "media_preprocess", "图片URL不可用",
-                                       reason=reason, preview=url[:80])
+                        slogger.warning(
+                            trace_id,
+                            "media_preprocess",
+                            "图片URL不可用",
+                            reason=reason,
+                            preview=url[:80],
+                        )
                 except Exception as e:
                     failed_images.append(f"{url[:80]} | exception:{e}")
-                    slogger.warning(trace_id, "media_preprocess", f"图片预处理失败: {e}")
+                    slogger.warning(
+                        trace_id, "media_preprocess", f"图片预处理失败: {e}"
+                    )
 
             elif media.type == "video" and video_count < self.max_videos:
                 video_count += 1
@@ -454,14 +492,22 @@ class MediaBatchProcessor:
             summary_parts.append(f"视频 {video_count} 个")
 
         summary = "，".join(summary_parts)
-        slogger.info(trace_id, "media_preprocess", "媒体预处理完成",
-                    available_images=len(image_urls),
-                    failed_images=len(failed_images),
-                    videos=video_count)
+        slogger.info(
+            trace_id,
+            "media_preprocess",
+            "媒体预处理完成",
+            available_images=len(image_urls),
+            failed_images=len(failed_images),
+            videos=video_count,
+        )
 
         if failed_images:
-            slogger.debug(trace_id, "media_preprocess", "不可用图片详情",
-                         details=" || ".join(failed_images[:6]))
+            slogger.debug(
+                trace_id,
+                "media_preprocess",
+                "不可用图片详情",
+                details=" || ".join(failed_images[:6]),
+            )
 
         return image_urls, summary
 
@@ -478,7 +524,7 @@ class TokenBudgetController:
         self.segment_size = segment_size
 
     def estimate_tokens(self, text: str, image_count: int = 0) -> int:
-        chinese_chars = len(re.findall(r'[\u4e00-\u9fff]', text))
+        chinese_chars = len(re.findall(r"[\u4e00-\u9fff]", text))
         other_chars = len(text) - chinese_chars
         text_tokens = chinese_chars + int(other_chars * 0.25)
         image_tokens = image_count * 1000
@@ -515,13 +561,12 @@ class TokenBudgetController:
         return segments
 
     def generate_segmented_summary_prompt(
-        self,
-        segments: List[List[ChatContext]],
-        user_query: str,
-        intent_type: str
+        self, segments: List[List[ChatContext]], user_query: str, intent_type: str
     ) -> str:
         if len(segments) == 1:
-            return self._generate_single_segment_prompt(segments[0], user_query, intent_type)
+            return self._generate_single_segment_prompt(
+                segments[0], user_query, intent_type
+            )
 
         system_instruction = (
             "这是一段较长的聊天记录，将被分成多个部分进行分析。"
@@ -546,17 +591,14 @@ class TokenBudgetController:
 
 {full_content}
 
-用户说："{user_query if user_query else '你怎么看？'}"
+用户说："{user_query if user_query else "你怎么看？"}"
 
 请综合以上所有内容，给出自然、口语化的回应。直接像朋友聊天一样回应，不要加"根据聊天记录"之类的前缀。"""
 
         return prompt
 
     def _generate_single_segment_prompt(
-        self,
-        contexts: List[ChatContext],
-        user_query: str,
-        intent_type: str
+        self, contexts: List[ChatContext], user_query: str, intent_type: str
     ) -> str:
         chat_lines = []
         for ctx in contexts:
@@ -596,7 +638,7 @@ class TokenBudgetController:
 
 {chat_content}
 
-用户说："{user_query if user_query else '你怎么看？'}"
+用户说："{user_query if user_query else "你怎么看？"}"
 
 请直接给出自然、口语化的回应，不要加"根据聊天记录"之类的前缀。"""
 
@@ -608,7 +650,7 @@ class TokenBudgetController:
     "EraAsh",
     "智能感知合并转发消息，支持多模态分析，全链路日志追踪，消息去重与性能优化",
     "2.1.0",
-    "https://github.com/EraAsh/astrbot_plugin_forward_reader"
+    "https://github.com/EraAsh/astrbot_plugin_forward_reader",
 )
 class ForwardReader(Star):
     """
@@ -624,25 +666,25 @@ class ForwardReader(Star):
     EXPLICIT_COMMAND_PATTERNS = {
         "summary": ["总结合并转发", "总结转发", "总结聊天记录"],
         "analysis": ["分析合并转发", "分析转发", "解读合并转发", "解读转发"],
-        "query": ["查询合并转发", "查询转发"]
+        "query": ["查询合并转发", "查询转发"],
     }
 
     NATURAL_INTENT_PATTERNS = {
         "summary": [
             r"(总结|概括|归纳).*(合并转发|转发消息|聊天记录|这段对话|该消息)",
             r"(这段|这个|该)(合并转发|转发消息|聊天记录).*(讲了什么|说了什么|主要内容)",
-            r"(这段|这个|该).*(内容|消息).*(讲了什么|说了什么|主要内容)"
+            r"(这段|这个|该).*(内容|消息).*(讲了什么|说了什么|主要内容)",
         ],
         "analysis": [
             r"(分析|解读|评价|看看|看下|看一看).*(合并转发|转发消息|聊天记录|这段对话|该消息)",
             r"(这段|这个|该)(合并转发|转发消息|聊天记录).*(怎么看|什么意思|怎么理解)",
             r"(分析|解读|看看|看下).*(这个|这段|该).*(内容|消息)",
-            r"(看看|看下|看一眼).*(发的|里面|这个|这段).*(啥|什么|内容)"
+            r"(看看|看下|看一眼).*(发的|里面|这个|这段).*(啥|什么|内容)",
         ],
         "query": [
             r"(谁|有没有|是否).*(在|于)?.*(合并转发|转发消息|聊天记录|这段对话).*(说|提到)",
-            r"(合并转发|转发消息|聊天记录).*(里|中).*(谁|什么|哪里|何时|为什么|怎么)"
-        ]
+            r"(合并转发|转发消息|聊天记录).*(里|中).*(谁|什么|哪里|何时|为什么|怎么)",
+        ],
     }
 
     NATURAL_RESPONSES = {
@@ -650,22 +692,22 @@ class ForwardReader(Star):
             "让我看看这段对话...",
             "稍等，我浏览一下聊天记录...",
             "正在看这些内容...",
-            "让我了解一下这段对话的背景..."
+            "让我了解一下这段对话的背景...",
         ],
         "thinking_with_image": [
             "让我看看这段对话和图片...",
             "稍等，我浏览一下聊天记录和图片...",
-            "正在看这些内容，包括里面的图片..."
+            "正在看这些内容，包括里面的图片...",
         ],
         "error_vague": [
             "这段内容有点复杂，不太好概括呢。",
             "这些内容有点零散，不太好总结。",
-            "抱歉，这部分内容我理解起来有点困难。"
+            "抱歉，这部分内容我理解起来有点困难。",
         ],
         "error_multimodal": [
             "这里有些图片/视频我没法看清，只能告诉你文字部分的内容。",
-            "图片内容我看不太清楚，不过文字部分我可以帮你分析。"
-        ]
+            "图片内容我看不太清楚，不过文字部分我可以帮你分析。",
+        ],
     }
 
     def __init__(self, context: Context, config: AstrBotConfig):
@@ -685,9 +727,13 @@ class ForwardReader(Star):
 
         max_images = self.multimodal_config.get("max_images", 5)
         max_videos = self.multimodal_config.get("max_videos", 2)
-        media_timeout = float(self.multimodal_config.get("media_request_timeout", 10.0) or 10.0)
+        media_timeout = float(
+            self.multimodal_config.get("media_request_timeout", 10.0) or 10.0
+        )
         media_retry = int(self.multimodal_config.get("media_retry_times", 2) or 2)
-        self.media_processor = MediaBatchProcessor(max_images, max_videos, media_timeout, media_retry)
+        self.media_processor = MediaBatchProcessor(
+            max_images, max_videos, media_timeout, media_retry
+        )
 
         token_budget = self.performance_config.get("token_budget", 4000)
         segment_size = self.performance_config.get("segment_size", 1500)
@@ -698,9 +744,13 @@ class ForwardReader(Star):
 
         asyncio.create_task(self.dedup_cache.start_cleanup_task())
 
-        self.slogger.info("init", "plugin_initialized",
-                         "ForwardReader v2.0.0 初始化完成",
-                         dedup_ttl=dedup_ttl, token_budget=token_budget)
+        self.slogger.info(
+            "init",
+            "plugin_initialized",
+            "ForwardReader v2.0.0 初始化完成",
+            dedup_ttl=dedup_ttl,
+            token_budget=token_budget,
+        )
 
     def _load_config(self):
         """加载配置项"""
@@ -723,7 +773,7 @@ class ForwardReader(Star):
                 "image_quality": "auto",
                 "batch_process": True,
                 "media_request_timeout": 10.0,
-                "media_retry_times": 2
+                "media_retry_times": 2,
             }
 
         self.performance_config = self.config.get("performance_config", {})
@@ -734,7 +784,7 @@ class ForwardReader(Star):
                 "auto_analysis_delay": 2.0,
                 "token_budget": 4000,
                 "enable_segmented_summary": True,
-                "segment_size": 1500
+                "segment_size": 1500,
             }
 
         self.logging_config = self.config.get("logging_config", {})
@@ -742,7 +792,7 @@ class ForwardReader(Star):
             self.logging_config = {
                 "log_level": "INFO",
                 "enable_performance_log": True,
-                "enable_trace_log": False
+                "enable_trace_log": False,
             }
 
         self.parse_nested_forward = self.config.get("parse_nested_forward", True)
@@ -766,7 +816,7 @@ class ForwardReader(Star):
         command_match = re.match(
             r"^/?(分析合并转发|分析转发|解读合并转发|解读转发|总结合并转发|总结转发|总结聊天记录|查询合并转发|查询转发|forward_reader|fr)\b[:：]?\s*(.*)$",
             normalized,
-            flags=re.IGNORECASE
+            flags=re.IGNORECASE,
         )
         if not command_match:
             return False, "", ""
@@ -800,8 +850,22 @@ class ForwardReader(Star):
             return False
 
         brief_keywords = [
-            "分析这个", "分析下", "分析一下", "解读一下", "看下", "看看这个", "看看", "看一眼",
-            "这个内容", "这个消息", "这段内容", "这段消息", "发的啥", "发了啥", "说了啥", "啥意思"
+            "分析这个",
+            "分析下",
+            "分析一下",
+            "解读一下",
+            "看下",
+            "看看这个",
+            "看看",
+            "看一眼",
+            "这个内容",
+            "这个消息",
+            "这段内容",
+            "这段消息",
+            "发的啥",
+            "发了啥",
+            "说了啥",
+            "啥意思",
         ]
         return any(k in normalized for k in brief_keywords)
 
@@ -811,7 +875,14 @@ class ForwardReader(Star):
         if not normalized:
             return False
 
-        negative_keywords = ["不用分析", "别分析", "不需要分析", "无需分析", "先别看", "不用看"]
+        negative_keywords = [
+            "不用分析",
+            "别分析",
+            "不需要分析",
+            "无需分析",
+            "先别看",
+            "不用看",
+        ]
         return any(k in normalized for k in negative_keywords)
 
     def _build_inline_forward_id(self, payload: Dict[str, Any]) -> str:
@@ -832,11 +903,9 @@ class ForwardReader(Star):
 
     @filter.llm_tool(name="parse_forward_message")
     async def parse_forward_message_tool(
-        self,
-        event: AstrMessageEvent,
-        forward_id: str
+        self, event: AstrMessageEvent, forward_id: str
     ) -> str:
-        '''
+        """
         解析合并转发消息内容，提取结构化数据（包括文本、图片及多媒体信息）。
         当需要分析、总结或理解合并转发的聊天记录时调用此工具。
 
@@ -859,10 +928,14 @@ class ForwardReader(Star):
                 "total_messages": 消息总数,
                 "has_multimodal": 是否包含多媒体
             }
-        '''
+        """
         trace_id = self.slogger._generate_trace_id()
-        self.slogger.info(trace_id, "llm_tool_call", "LLM工具被调用",
-                         forward_id=forward_id[:20] if forward_id else "")
+        self.slogger.info(
+            trace_id,
+            "llm_tool_call",
+            "LLM工具被调用",
+            forward_id=forward_id[:20] if forward_id else "",
+        )
 
         if not IS_AIOCQHTTP or not isinstance(event, AiocqhttpMessageEvent):
             return json.dumps({"error": "该功能仅在QQ平台可用"}, ensure_ascii=False)
@@ -874,26 +947,32 @@ class ForwardReader(Star):
 
             messages_data = []
             for ctx in contexts:
-                messages_data.append({
-                    "sender": ctx.sender,
-                    "content": ctx.content,
-                    "has_image": ctx.has_image,
-                    "has_video": ctx.has_video,
-                    "has_file": ctx.has_file
-                })
+                messages_data.append(
+                    {
+                        "sender": ctx.sender,
+                        "content": ctx.content,
+                        "has_image": ctx.has_image,
+                        "has_video": ctx.has_video,
+                        "has_file": ctx.has_file,
+                    }
+                )
 
             result = {
                 "messages": messages_data,
                 "image_urls": image_urls,
                 "total_messages": len(contexts),
-                "has_multimodal": len(image_urls) > 0 or any(
-                    ctx.has_video or ctx.has_image for ctx in contexts
-                ),
-                "nested_forward_count": nested_count
+                "has_multimodal": len(image_urls) > 0
+                or any(ctx.has_video or ctx.has_image for ctx in contexts),
+                "nested_forward_count": nested_count,
             }
 
-            self.slogger.info(trace_id, "llm_tool_complete", "工具执行完成",
-                            messages=len(contexts), images=len(image_urls))
+            self.slogger.info(
+                trace_id,
+                "llm_tool_complete",
+                "工具执行完成",
+                messages=len(contexts),
+                images=len(image_urls),
+            )
 
             return json.dumps(result, ensure_ascii=False)
 
@@ -906,9 +985,9 @@ class ForwardReader(Star):
         self,
         event: AstrMessageEvent,
         forward_id: str,
-        user_query: str = "请分析这段聊天记录"
+        user_query: str = "请分析这段聊天记录",
     ) -> str:
-        '''
+        """
         分析合并转发消息的内容（包括文本、图片及多媒体信息），提取结构化数据并生成内容理解。
         当用户需要分析、总结或理解一段合并转发的聊天记录时调用此工具。
 
@@ -918,11 +997,15 @@ class ForwardReader(Star):
 
         Returns:
             分析结果的文本内容
-        '''
+        """
         trace_id = self.slogger._generate_trace_id()
-        self.slogger.info(trace_id, "llm_tool_call", "LLM工具被调用",
-                         forward_id=forward_id[:20] if forward_id else "",
-                         query=user_query[:50])
+        self.slogger.info(
+            trace_id,
+            "llm_tool_call",
+            "LLM工具被调用",
+            forward_id=forward_id[:20] if forward_id else "",
+            query=user_query[:50],
+        )
 
         if not IS_AIOCQHTTP or not isinstance(event, AiocqhttpMessageEvent):
             return "抱歉，该功能仅在QQ平台可用。"
@@ -935,7 +1018,7 @@ class ForwardReader(Star):
                 user_query=user_query,
                 intent_type="llm_tool",
                 priority=AnalysisPriority.MANUAL,
-                is_direct_analysis=False
+                is_direct_analysis=False,
             )
 
             result = await self._execute_analysis(task, trace_id)
@@ -950,11 +1033,15 @@ class ForwardReader(Star):
         """智能消息处理器"""
         trace_id = self.slogger._generate_trace_id()
 
-        self.slogger.debug(trace_id, "msg_receive", "收到消息事件",
-                          platform=event.get_platform_name(),
-                          user=event.get_sender_id(),
-                          group=event.get_group_id() or "private",
-                          content_preview=event.message_str[:50] if event.message_str else "")
+        self.slogger.debug(
+            trace_id,
+            "msg_receive",
+            "收到消息事件",
+            platform=event.get_platform_name(),
+            user=event.get_sender_id(),
+            group=event.get_group_id() or "private",
+            content_preview=event.message_str[:50] if event.message_str else "",
+        )
 
         if not IS_AIOCQHTTP or not isinstance(event, AiocqhttpMessageEvent):
             self.slogger.debug(trace_id, "msg_receive", "非aiocqhttp平台，跳过")
@@ -979,22 +1066,30 @@ class ForwardReader(Star):
                     or seg_data.get("resid")
                     or seg_data.get("forward_id")
                 )
-                if isinstance(seg_data, dict) and isinstance(seg_data.get("messages"), list):
+                if isinstance(seg_data, dict) and isinstance(
+                    seg_data.get("messages"), list
+                ):
                     forward_payload = {"messages": seg_data.get("messages", [])}
                 if forward_id:
                     forward_id = str(forward_id)
             elif isinstance(seg, Comp.Reply):
                 reply_seg = seg
 
-        has_explicit_command, explicit_intent, command_args = self._detect_explicit_command(user_message)
+        has_explicit_command, explicit_intent, command_args = (
+            self._detect_explicit_command(user_message)
+        )
         has_natural_intent, natural_intent = self._detect_natural_intent(user_message)
 
-        self.slogger.info(trace_id, "analysis_type", "消息类型判定",
-                         has_forward=bool(forward_id or forward_payload),
-                         has_reply=bool(reply_seg),
-                         explicit_command=has_explicit_command,
-                         natural_intent=has_natural_intent,
-                         user_message=user_message[:60] if user_message else "")
+        self.slogger.info(
+            trace_id,
+            "analysis_type",
+            "消息类型判定",
+            has_forward=bool(forward_id or forward_payload),
+            has_reply=bool(reply_seg),
+            explicit_command=has_explicit_command,
+            natural_intent=has_natural_intent,
+            user_message=user_message[:60] if user_message else "",
+        )
 
         should_analyze = False
         intent_type = "analysis"
@@ -1006,20 +1101,32 @@ class ForwardReader(Star):
         if self.enable_reply_analysis and reply_seg:
             # Issue #3: 如果开启 require_at_mention，需要同时 @机器人
             if self.require_at_mention:
-                is_at_bot = any(isinstance(seg, Comp.At) for seg in event.message_obj.message)
+                is_at_bot = any(
+                    isinstance(seg, Comp.At) for seg in event.message_obj.message
+                )
                 if not (is_at_bot or event.is_at_or_wake_command):
-                    self.slogger.info(trace_id, "analysis_gate",
-                                     "引用转发但未@机器人，require_at_mention 模式下跳过")
+                    self.slogger.info(
+                        trace_id,
+                        "analysis_gate",
+                        "引用转发但未@机器人，require_at_mention 模式下跳过",
+                    )
                     return
 
             try:
-                reply_forward_id, reply_forward_payload = await self._extract_forward_from_reply(event, reply_seg)
+                (
+                    reply_forward_id,
+                    reply_forward_payload,
+                ) = await self._extract_forward_from_reply(event, reply_seg)
                 if reply_forward_id or reply_forward_payload:
                     forward_id = reply_forward_id or forward_id
                     forward_payload = reply_forward_payload or forward_payload
 
                     if self._is_negative_intent(user_message):
-                        self.slogger.info(trace_id, "analysis_gate", "检测到取消分析意图，按用户要求跳过")
+                        self.slogger.info(
+                            trace_id,
+                            "analysis_gate",
+                            "检测到取消分析意图，按用户要求跳过",
+                        )
                         return
 
                     # 规则：引用目标合并转发本身即为显式触发；意图词用于细化类型
@@ -1041,12 +1148,18 @@ class ForwardReader(Star):
                         trigger_reason = "reply_default"
                     priority = AnalysisPriority.MANUAL
             except Exception as e:
-                self.slogger.warning(trace_id, "analysis_type", f"提取引用转发失败: {e}")
+                self.slogger.warning(
+                    trace_id, "analysis_type", f"提取引用转发失败: {e}"
+                )
                 return
 
         # 场景B：直接发送合并转发（必须显式命令或明确自然语言意图）
         elif self.enable_direct_analysis and (forward_id or forward_payload):
-            if has_explicit_command or has_natural_intent or self._is_brief_analysis_request(user_message):
+            if (
+                has_explicit_command
+                or has_natural_intent
+                or self._is_brief_analysis_request(user_message)
+            ):
                 should_analyze = True
                 is_direct_analysis = True
                 if has_explicit_command:
@@ -1061,21 +1174,27 @@ class ForwardReader(Star):
                 self.slogger.info(
                     trace_id,
                     "analysis_gate",
-                    "检测到合并转发但无明确分析指令，静默跳过"
+                    "检测到合并转发但无明确分析指令，静默跳过",
                 )
 
         # 场景C：主动回复模式（仍要求自然语言意图，避免@即触发）
         elif self.enable_proactive_reply and (forward_id or forward_payload):
             is_at = any(isinstance(seg, Comp.At) for seg in event.message_obj.message)
-            if (is_at or event.is_at_or_wake_command) and (has_explicit_command or has_natural_intent):
+            if (is_at or event.is_at_or_wake_command) and (
+                has_explicit_command or has_natural_intent
+            ):
                 should_analyze = True
-                intent_type = explicit_intent if has_explicit_command else natural_intent
+                intent_type = (
+                    explicit_intent if has_explicit_command else natural_intent
+                )
                 trigger_reason = "proactive_with_intent"
                 priority = AnalysisPriority.MANUAL
 
         # 显式命令但没有目标合并转发：拒绝触发并记录原因
         if has_explicit_command and not (forward_id or forward_payload):
-            self.slogger.info(trace_id, "analysis_gate", "检测到显式命令，但未找到目标合并转发，跳过")
+            self.slogger.info(
+                trace_id, "analysis_gate", "检测到显式命令，但未找到目标合并转发，跳过"
+            )
             return
 
         if forward_payload and not forward_id:
@@ -1085,16 +1204,18 @@ class ForwardReader(Star):
             self.slogger.debug(trace_id, "analysis_type", "未触发分析")
             return
 
-        self.slogger.info(trace_id, "analysis_gate", "通过触发门控",
-                         reason=trigger_reason,
-                         intent=intent_type,
-                         direct=is_direct_analysis)
+        self.slogger.info(
+            trace_id,
+            "analysis_gate",
+            "通过触发门控",
+            reason=trigger_reason,
+            intent=intent_type,
+            direct=is_direct_analysis,
+        )
 
         if self.performance_config.get("enable_deduplication", True):
             is_dup = await self.dedup_cache.is_duplicate(
-                forward_id,
-                event.get_sender_id(),
-                event.get_group_id()
+                forward_id, event.get_sender_id(), event.get_group_id()
             )
             if is_dup:
                 self.slogger.info(trace_id, "deduplication", "消息已分析过，跳过")
@@ -1109,7 +1230,7 @@ class ForwardReader(Star):
             priority=priority,
             delay_seconds=self.performance_config.get("auto_analysis_delay", 2.0),
             is_direct_analysis=is_direct_analysis,
-            forward_payload=forward_payload
+            forward_payload=forward_payload,
         )
 
         added = await self.task_queue.add_task(task)
@@ -1121,8 +1242,9 @@ class ForwardReader(Star):
             self.slogger.info(trace_id, "task_execute", "立即执行手动任务")
             await self._execute_analysis_task(task)
         else:
-            self.slogger.info(trace_id, "task_execute",
-                            "延迟触发自动任务", delay=task.delay_seconds)
+            self.slogger.info(
+                trace_id, "task_execute", "延迟触发自动任务", delay=task.delay_seconds
+            )
             asyncio.create_task(self._delayed_analysis(task))
 
     async def _delayed_analysis(self, task: AnalysisTask):
@@ -1136,8 +1258,12 @@ class ForwardReader(Star):
 
             current_state = await self.state_manager.get_state(session_id)
             if current_state != AnalysisState.PENDING:
-                self.slogger.info(task.task_id, "delayed_analysis",
-                                "状态已变更，取消延迟任务", new_state=current_state.name)
+                self.slogger.info(
+                    task.task_id,
+                    "delayed_analysis",
+                    "状态已变更，取消延迟任务",
+                    new_state=current_state.name,
+                )
                 return
 
             await self._execute_analysis_task(task)
@@ -1152,8 +1278,9 @@ class ForwardReader(Star):
         trace_id = task.task_id
 
         if not await self.state_manager.can_start_analysis(session_id):
-            self.slogger.info(trace_id, "task_execute",
-                            "当前会话正在分析中，加入队列等待")
+            self.slogger.info(
+                trace_id, "task_execute", "当前会话正在分析中，加入队列等待"
+            )
             for _ in range(30):
                 await asyncio.sleep(1)
                 if await self.state_manager.can_start_analysis(session_id):
@@ -1166,16 +1293,18 @@ class ForwardReader(Star):
 
         if self.performance_config.get("enable_deduplication", True):
             await self.dedup_cache.add(
-                task.forward_id,
-                task.event.get_sender_id(),
-                task.event.get_group_id()
+                task.forward_id, task.event.get_sender_id(), task.event.get_group_id()
             )
 
         metrics = PerformanceMetrics()
 
         try:
-            self.slogger.info(trace_id, "analysis_start", "开始分析",
-                            forward_id=task.forward_id[:20] if task.forward_id else "")
+            self.slogger.info(
+                trace_id,
+                "analysis_start",
+                "开始分析",
+                forward_id=task.forward_id[:20] if task.forward_id else "",
+            )
 
             setattr(task.event, "_forward_payload_override", task.forward_payload)
             result = await self._prepare_analysis(
@@ -1184,7 +1313,7 @@ class ForwardReader(Star):
                 task.user_query,
                 task.intent_type,
                 task.is_direct_analysis,
-                trace_id
+                trace_id,
             )
 
             if not result.success:
@@ -1198,52 +1327,77 @@ class ForwardReader(Star):
                 thinking_msg = self._generate_natural_thinking(result.has_multimodal)
                 await self._send_natural_message(task.event, thinking_msg)
 
-            self.slogger.debug(trace_id, "multimodal_detect", "多模态检测完成",
-                             has_multimodal=result.has_multimodal,
-                             image_count=len(result.image_urls),
-                             nested_count=result.nested_forward_count)
+            self.slogger.debug(
+                trace_id,
+                "multimodal_detect",
+                "多模态检测完成",
+                has_multimodal=result.has_multimodal,
+                image_count=len(result.image_urls),
+                nested_count=result.nested_forward_count,
+            )
 
             image_urls_to_use: List[str] = []
             media_summary = ""
-            if result.has_multimodal and self.multimodal_config.get("enable_multimodal", True):
-                media_list = [MediaContent(type="image", url=url) for url in result.image_urls]
-                image_urls_to_use, media_summary = await self.media_processor.process_media_batch(
+            if result.has_multimodal and self.multimodal_config.get(
+                "enable_multimodal", True
+            ):
+                media_list = [
+                    MediaContent(type="image", url=url) for url in result.image_urls
+                ]
+                (
+                    image_urls_to_use,
+                    media_summary,
+                ) = await self.media_processor.process_media_batch(
                     media_list, trace_id, self.slogger
                 )
 
-            self.slogger.debug(trace_id, "media_preprocess", "媒体预处理完成",
-                             processed_images=len(image_urls_to_use),
-                             raw_images=len(result.image_urls),
-                             summary=media_summary)
+            self.slogger.debug(
+                trace_id,
+                "media_preprocess",
+                "媒体预处理完成",
+                processed_images=len(image_urls_to_use),
+                raw_images=len(result.image_urls),
+                summary=media_summary,
+            )
 
             llm_prompt = result.content
-            if result.has_multimodal and self.multimodal_config.get("enable_multimodal", True):
+            if result.has_multimodal and self.multimodal_config.get(
+                "enable_multimodal", True
+            ):
                 if len(image_urls_to_use) == 0 and len(result.image_urls) > 0:
                     llm_prompt += (
                         "\n\n[多模态回退说明] 聊天记录中包含图片，但当前环境无法直接读取这些图片链接。"
                         "请重点参考上下文中的[图片]标记及周边文本进行分析，不要臆造图片细节。"
                     )
-                    self.slogger.warning(trace_id, "llm_request", "图片全部不可用，降级为文本+图片占位语义")
-                elif len(image_urls_to_use) < len(result.image_urls):
-                    llm_prompt += (
-                        "\n\n[多模态部分回退说明] 仅部分图片可访问，请结合可访问图片和文本上下文进行分析。"
+                    self.slogger.warning(
+                        trace_id,
+                        "llm_request",
+                        "图片全部不可用，降级为文本+图片占位语义",
                     )
+                elif len(image_urls_to_use) < len(result.image_urls):
+                    llm_prompt += "\n\n[多模态部分回退说明] 仅部分图片可访问，请结合可访问图片和文本上下文进行分析。"
 
-            self.slogger.info(trace_id, "llm_request", "调用LLM生成回应",
-                            is_direct_analysis=task.is_direct_analysis,
-                            image_count=len(image_urls_to_use),
-                            raw_image_count=len(result.image_urls),
-                            token_estimate=result.token_estimate)
+            self.slogger.info(
+                trace_id,
+                "llm_request",
+                "调用LLM生成回应",
+                is_direct_analysis=task.is_direct_analysis,
+                image_count=len(image_urls_to_use),
+                raw_image_count=len(result.image_urls),
+                token_estimate=result.token_estimate,
+            )
 
             metrics.llm_start_time = time.time()
 
-            manual_provider_id = str(self.multimodal_config.get("vision_provider_id", "")).strip()
+            manual_provider_id = str(
+                self.multimodal_config.get("vision_provider_id", "")
+            ).strip()
             if manual_provider_id:
                 manual_result = await self._request_llm_with_selected_provider(
                     provider_id=manual_provider_id,
                     prompt=llm_prompt,
                     image_urls=image_urls_to_use,
-                    trace_id=trace_id
+                    trace_id=trace_id,
                 )
                 if manual_result:
                     metrics.llm_end_time = time.time()
@@ -1252,14 +1406,14 @@ class ForwardReader(Star):
                         task.event,
                         manual_result,
                         trace_id=trace_id,
-                        source="manual_provider"
+                        source="manual_provider",
                     )
                     self.slogger.info(
                         trace_id,
                         "context_write",
                         "手动提供商结果写回状态",
                         send_success=True,
-                        history_written=history_ok
+                        history_written=history_ok,
                     )
                     task.event.stop_event()
 
@@ -1271,7 +1425,7 @@ class ForwardReader(Star):
                         "analysis_complete",
                         "分析完成（已使用手动指定多模态提供商）",
                         provider_id=manual_provider_id,
-                        duration=f"{metrics.total_duration:.2f}s"
+                        duration=f"{metrics.total_duration:.2f}s",
                     )
                     return
 
@@ -1279,13 +1433,13 @@ class ForwardReader(Star):
                     trace_id,
                     "llm_request",
                     "手动指定多模态提供商调用失败，已回退到默认提供商",
-                    provider_id=manual_provider_id
+                    provider_id=manual_provider_id,
                 )
 
             track_info = {
                 "trace_id": trace_id,
                 "origin": task.event.unified_msg_origin,
-                "time": time.time()
+                "time": time.time(),
             }
             setattr(task.event, "_forward_reader_context_track", track_info)
 
@@ -1294,23 +1448,30 @@ class ForwardReader(Star):
                     prompt=llm_prompt,
                     image_urls=image_urls_to_use,
                     contexts=[],
-                    session_id=None
+                    session_id=None,
                 )
             else:
                 await task.event.request_llm(
-                    prompt=llm_prompt,
-                    image_urls=image_urls_to_use
+                    prompt=llm_prompt, image_urls=image_urls_to_use
                 )
 
             metrics.llm_end_time = time.time()
-            self.slogger.info(trace_id, "context_write", "已提交到框架LLM流程，等待on_llm_response回填上下文")
+            self.slogger.info(
+                trace_id,
+                "context_write",
+                "已提交到框架LLM流程，等待on_llm_response回填上下文",
+            )
             task.event.stop_event()
 
             if self.logging_config.get("enable_performance_log", True):
                 self.slogger.performance(trace_id, metrics)
 
-            self.slogger.info(trace_id, "analysis_complete", "分析完成",
-                            duration=f"{metrics.total_duration:.2f}s")
+            self.slogger.info(
+                trace_id,
+                "analysis_complete",
+                "分析完成",
+                duration=f"{metrics.total_duration:.2f}s",
+            )
 
         except Exception as e:
             self.slogger.error(trace_id, "analysis_error", f"分析过程异常: {e}")
@@ -1331,21 +1492,29 @@ class ForwardReader(Star):
                 task.user_query,
                 task.intent_type,
                 task.is_direct_analysis,
-                trace_id
+                trace_id,
             )
 
             if not result.success:
                 return "无法解析该合并转发消息。"
 
             image_urls_to_use: List[str] = []
-            if result.has_multimodal and self.multimodal_config.get("enable_multimodal", True):
-                media_list = [MediaContent(type="image", url=url) for url in result.image_urls]
+            if result.has_multimodal and self.multimodal_config.get(
+                "enable_multimodal", True
+            ):
+                media_list = [
+                    MediaContent(type="image", url=url) for url in result.image_urls
+                ]
                 image_urls_to_use, _ = await self.media_processor.process_media_batch(
                     media_list, trace_id, self.slogger
                 )
 
             llm_prompt = result.content
-            if result.has_multimodal and len(result.image_urls) > 0 and len(image_urls_to_use) == 0:
+            if (
+                result.has_multimodal
+                and len(result.image_urls) > 0
+                and len(image_urls_to_use) == 0
+            ):
                 llm_prompt += (
                     "\n\n[多模态回退说明] 检测到图片但当前环境不可访问图片链接，"
                     "请基于文本与[图片]占位符谨慎分析，不要编造图片细节。"
@@ -1365,7 +1534,7 @@ class ForwardReader(Star):
                 contexts=[],
                 image_urls=image_urls_to_use,
                 func_tool=None,
-                system_prompt="你是一个专业的聊天记录分析助手。"
+                system_prompt="你是一个专业的聊天记录分析助手。",
             )
 
             if response and response.role == "assistant" and response.completion_text:
@@ -1387,7 +1556,7 @@ class ForwardReader(Star):
         user_query: str,
         intent_type: str,
         is_direct_analysis: bool,
-        trace_id: str
+        trace_id: str,
     ) -> AnalysisResult:
         """准备分析内容"""
         try:
@@ -1396,7 +1565,7 @@ class ForwardReader(Star):
                 forward_id,
                 current_depth=0,
                 trace_id=trace_id,
-                forward_payload=getattr(event, "_forward_payload_override", None)
+                forward_payload=getattr(event, "_forward_payload_override", None),
             )
 
             if not contexts:
@@ -1407,28 +1576,46 @@ class ForwardReader(Star):
                 ctx.has_video or ctx.has_image for ctx in contexts
             )
 
-            token_estimate = self.token_controller.estimate_tokens(total_text, len(image_urls))
+            token_estimate = self.token_controller.estimate_tokens(
+                total_text, len(image_urls)
+            )
 
-            self.slogger.debug(trace_id, "content_extract", "内容提取完成",
-                             chat_count=len(contexts),
-                             text_length=len(total_text),
-                             image_count=len(image_urls),
-                             token_estimate=token_estimate)
+            self.slogger.debug(
+                trace_id,
+                "content_extract",
+                "内容提取完成",
+                chat_count=len(contexts),
+                text_length=len(total_text),
+                image_count=len(image_urls),
+                token_estimate=token_estimate,
+            )
 
             if len(total_text.strip()) < 10 and not has_multimodal:
-                self.slogger.debug(trace_id, "content_extract", "内容过少，可能无法解析")
+                self.slogger.debug(
+                    trace_id, "content_extract", "内容过少，可能无法解析"
+                )
                 return AnalysisResult(success=False, error_type="unreadable")
 
-            enable_segmented = self.performance_config.get("enable_segmented_summary", True)
-            if enable_segmented and self.token_controller.should_segment(total_text, len(image_urls)):
+            enable_segmented = self.performance_config.get(
+                "enable_segmented_summary", True
+            )
+            if enable_segmented and self.token_controller.should_segment(
+                total_text, len(image_urls)
+            ):
                 segments = self.token_controller.segment_content(contexts)
                 prompt = self.token_controller.generate_segmented_summary_prompt(
                     segments, user_query, intent_type
                 )
-                self.slogger.info(trace_id, "segment_summary", "启用分段摘要", segments=len(segments))
+                self.slogger.info(
+                    trace_id, "segment_summary", "启用分段摘要", segments=len(segments)
+                )
             else:
                 prompt = self._generate_analysis_prompt(
-                    contexts, user_query, intent_type, has_multimodal, is_direct_analysis
+                    contexts,
+                    user_query,
+                    intent_type,
+                    has_multimodal,
+                    is_direct_analysis,
                 )
 
             return AnalysisResult(
@@ -1438,7 +1625,7 @@ class ForwardReader(Star):
                 image_urls=image_urls,
                 has_multimodal=has_multimodal,
                 nested_forward_count=nested_count,
-                token_estimate=token_estimate
+                token_estimate=token_estimate,
             )
 
         except json.JSONDecodeError as e:
@@ -1457,12 +1644,15 @@ class ForwardReader(Star):
         forward_id: Optional[str],
         current_depth: int,
         trace_id: str,
-        forward_payload: Optional[Dict[str, Any]] = None
+        forward_payload: Optional[Dict[str, Any]] = None,
     ) -> Tuple[List[ChatContext], List[str], int]:
         """提取合并转发中的消息内容（支持ID拉取与内联payload两种来源）。"""
         if current_depth > self.max_nested_depth:
-            self.slogger.debug(trace_id, "extract_forward",
-                             f"达到最大嵌套深度 {self.max_nested_depth}，停止递归")
+            self.slogger.debug(
+                trace_id,
+                "extract_forward",
+                f"达到最大嵌套深度 {self.max_nested_depth}，停止递归",
+            )
             return [], [], 0
 
         messages: List[dict] = []
@@ -1471,23 +1661,39 @@ class ForwardReader(Star):
         if isinstance(forward_payload, dict):
             messages = self._extract_messages_from_forward_data(forward_payload)
             if messages:
-                self.slogger.debug(trace_id, "extract_forward", "使用内联合并转发数据解析",
-                                 current_depth=current_depth, message_count=len(messages))
+                self.slogger.debug(
+                    trace_id,
+                    "extract_forward",
+                    "使用内联合并转发数据解析",
+                    current_depth=current_depth,
+                    message_count=len(messages),
+                )
 
         # 内联数据不可用时，回退到 get_forward_msg
         if not messages:
             if not forward_id:
-                self.slogger.error(trace_id, "extract_forward", "缺少forward_id且无内联数据")
+                self.slogger.error(
+                    trace_id, "extract_forward", "缺少forward_id且无内联数据"
+                )
                 raise ValueError("无法获取合并转发内容：缺少可用ID")
 
             client = event.bot
             try:
-                forward_data = await client.api.call_action('get_forward_msg', id=forward_id)
+                forward_data = await client.api.call_action(
+                    "get_forward_msg", id=forward_id
+                )
                 messages = self._extract_messages_from_forward_data(forward_data)
-                self.slogger.debug(trace_id, "extract_forward", "通过API获取合并转发成功",
-                                 current_depth=current_depth, message_count=len(messages))
+                self.slogger.debug(
+                    trace_id,
+                    "extract_forward",
+                    "通过API获取合并转发成功",
+                    current_depth=current_depth,
+                    message_count=len(messages),
+                )
             except Exception as e:
-                self.slogger.error(trace_id, "extract_forward", f"获取合并转发失败: {e}")
+                self.slogger.error(
+                    trace_id, "extract_forward", f"获取合并转发失败: {e}"
+                )
                 raise ValueError("无法获取合并转发内容")
 
         if not messages:
@@ -1500,17 +1706,22 @@ class ForwardReader(Star):
 
         for node in messages:
             if message_count >= self.max_messages:
-                self.slogger.debug(trace_id, "extract_forward",
-                                 f"达到最大消息数 {self.max_messages}")
+                self.slogger.debug(
+                    trace_id, "extract_forward", f"达到最大消息数 {self.max_messages}"
+                )
                 break
 
             sender_obj = node.get("sender", {}) if isinstance(node, dict) else {}
             sender_name = (
-                sender_obj.get("nickname")
-                or node.get("nickname")
-                or node.get("name")
-                or "未知用户"
-            ) if isinstance(node, dict) else "未知用户"
+                (
+                    sender_obj.get("nickname")
+                    or node.get("nickname")
+                    or node.get("name")
+                    or "未知用户"
+                )
+                if isinstance(node, dict)
+                else "未知用户"
+            )
 
             content_chain = []
             if isinstance(node, dict):
@@ -1569,17 +1780,25 @@ class ForwardReader(Star):
                         nested_id = self._extract_forward_id_from_segment_data(seg_data)
                         if nested_id and current_depth < self.max_nested_depth:
                             nested_forward_count += 1
-                            self.slogger.debug(trace_id, "extract_forward",
-                                             f"发现嵌套转发，深度 {current_depth + 1}")
+                            self.slogger.debug(
+                                trace_id,
+                                "extract_forward",
+                                f"发现嵌套转发，深度 {current_depth + 1}",
+                            )
                             try:
-                                nested_contexts, nested_images, _ = await self._extract_forward_messages(
+                                (
+                                    nested_contexts,
+                                    nested_images,
+                                    _,
+                                ) = await self._extract_forward_messages(
                                     event, nested_id, current_depth + 1, trace_id
                                 )
                                 contexts.extend(nested_contexts)
                                 image_urls.extend(nested_images)
                             except Exception as e:
-                                self.slogger.warning(trace_id, "extract_forward",
-                                                   f"嵌套解析失败: {e}")
+                                self.slogger.warning(
+                                    trace_id, "extract_forward", f"嵌套解析失败: {e}"
+                                )
 
                 ctx.content = "".join(text_parts).strip()
 
@@ -1597,11 +1816,15 @@ class ForwardReader(Star):
         # 常见字段优先级：url > source_url > src > file(若为http)
         for key in ("url", "source_url", "src", "origin", "origin_url"):
             value = seg_data.get(key)
-            if isinstance(value, str) and value.strip().startswith(("http://", "https://")):
+            if isinstance(value, str) and value.strip().startswith(
+                ("http://", "https://")
+            ):
                 return value.strip()
 
         file_value = seg_data.get("file")
-        if isinstance(file_value, str) and file_value.strip().startswith(("http://", "https://")):
+        if isinstance(file_value, str) and file_value.strip().startswith(
+            ("http://", "https://")
+        ):
             return file_value.strip()
 
         return ""
@@ -1678,7 +1901,9 @@ class ForwardReader(Star):
 
         return None
 
-    def _extract_forward_payload_from_message_obj(self, message_obj: Any) -> Optional[Dict[str, Any]]:
+    def _extract_forward_payload_from_message_obj(
+        self, message_obj: Any
+    ) -> Optional[Dict[str, Any]]:
         """从 message 对象中递归提取内联合并转发 payload（messages）。"""
         if isinstance(message_obj, list):
             for item in message_obj:
@@ -1693,7 +1918,9 @@ class ForwardReader(Star):
         seg_type = message_obj.get("type")
         if seg_type == "forward":
             seg_data = message_obj.get("data", {})
-            if isinstance(seg_data, dict) and isinstance(seg_data.get("messages"), list):
+            if isinstance(seg_data, dict) and isinstance(
+                seg_data.get("messages"), list
+            ):
                 return {"messages": seg_data.get("messages", [])}
             if isinstance(message_obj.get("messages"), list):
                 return {"messages": message_obj.get("messages", [])}
@@ -1716,11 +1943,13 @@ class ForwardReader(Star):
 
         seg_data = getattr(reply_seg, "data", {}) or {}
         if isinstance(seg_data, dict):
-            candidate_values.extend([
-                seg_data.get("id"),
-                seg_data.get("message_id"),
-                seg_data.get("msg_id"),
-            ])
+            candidate_values.extend(
+                [
+                    seg_data.get("id"),
+                    seg_data.get("message_id"),
+                    seg_data.get("msg_id"),
+                ]
+            )
 
         for value in candidate_values:
             if value is None:
@@ -1732,14 +1961,16 @@ class ForwardReader(Star):
         return None
 
     async def _extract_forward_from_reply(
-        self,
-        event: AiocqhttpMessageEvent,
-        reply_seg: Comp.Reply
+        self, event: AiocqhttpMessageEvent, reply_seg: Comp.Reply
     ) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
         """从引用消息中提取合并转发ID或内联payload。"""
         reply_message_id = self._extract_reply_message_id(reply_seg)
         if not reply_message_id:
-            self.slogger.info("extract_reply", "extract_forward_from_reply", "Reply段缺少可用message_id")
+            self.slogger.info(
+                "extract_reply",
+                "extract_forward_from_reply",
+                "Reply段缺少可用message_id",
+            )
             return None, None
 
         try:
@@ -1750,23 +1981,27 @@ class ForwardReader(Star):
             call_errors: List[str] = []
 
             try:
-                original_msg = await client.api.call_action('get_msg', message_id=int(reply_message_id))
+                original_msg = await client.api.call_action(
+                    "get_msg", message_id=int(reply_message_id)
+                )
             except Exception as e_int:
                 call_errors.append(f"int_id失败: {e_int}")
 
             if not original_msg:
                 try:
-                    original_msg = await client.api.call_action('get_msg', message_id=reply_message_id)
+                    original_msg = await client.api.call_action(
+                        "get_msg", message_id=reply_message_id
+                    )
                 except Exception as e_str:
                     call_errors.append(f"str_id失败: {e_str}")
 
-            if not original_msg or 'message' not in original_msg:
+            if not original_msg or "message" not in original_msg:
                 self.slogger.info(
                     "extract_reply",
                     "extract_forward_from_reply",
                     "引用消息获取成功但未含message字段或为空",
                     message_id=reply_message_id,
-                    errors=" | ".join(call_errors) if call_errors else ""
+                    errors=" | ".join(call_errors) if call_errors else "",
                 )
                 return None, None
 
@@ -1779,7 +2014,7 @@ class ForwardReader(Star):
                     "extract_reply",
                     "extract_forward_from_reply",
                     "引用目标不是合并转发，跳过",
-                    message_id=reply_message_id
+                    message_id=reply_message_id,
                 )
 
             return found_id, found_payload
@@ -1789,7 +2024,7 @@ class ForwardReader(Star):
                 "extract_reply",
                 "extract_forward_from_reply",
                 f"获取引用消息失败: {e}",
-                message_id=reply_message_id
+                message_id=reply_message_id,
             )
 
         return None, None
@@ -1814,11 +2049,7 @@ class ForwardReader(Star):
         return provider
 
     async def _request_llm_with_selected_provider(
-        self,
-        provider_id: str,
-        prompt: str,
-        image_urls: List[str],
-        trace_id: str
+        self, provider_id: str, prompt: str, image_urls: List[str], trace_id: str
     ) -> Optional[str]:
         """使用手动指定的提供商调用多模态分析，失败返回 None。"""
         provider = self._get_provider_by_id(provider_id)
@@ -1827,7 +2058,7 @@ class ForwardReader(Star):
                 trace_id,
                 "llm_request",
                 "未找到手动指定的多模态提供商",
-                provider_id=provider_id
+                provider_id=provider_id,
             )
             return None
 
@@ -1839,7 +2070,7 @@ class ForwardReader(Star):
                 contexts=[],
                 image_urls=image_urls,
                 func_tool=None,
-                system_prompt=system_prompt
+                system_prompt=system_prompt,
             )
             if response and response.role == "assistant" and response.completion_text:
                 return response.completion_text
@@ -1848,7 +2079,7 @@ class ForwardReader(Star):
                 trace_id,
                 "llm_request",
                 f"手动提供商调用异常: {e}",
-                provider_id=provider_id
+                provider_id=provider_id,
             )
 
         return None
@@ -1877,7 +2108,7 @@ class ForwardReader(Star):
         user_query: str,
         intent_type: str,
         has_multimodal: bool = False,
-        is_direct_analysis: bool = False
+        is_direct_analysis: bool = False,
     ) -> str:
         """生成分析提示词"""
         chat_lines = []
@@ -1923,17 +2154,14 @@ class ForwardReader(Star):
 
 {chat_content}
 
-用户说："{user_query if user_query else '你怎么看？'}"
+用户说："{user_query if user_query else "你怎么看？"}"
 
 请直接给出自然、口语化的回应，不要加"根据聊天记录"之类的前缀。"""
 
         return prompt
 
     async def _handle_analysis_error(
-        self,
-        event: AstrMessageEvent,
-        result: AnalysisResult,
-        trace_id: str
+        self, event: AstrMessageEvent, result: AnalysisResult, trace_id: str
     ):
         """处理分析错误"""
         if result.error_type == "unreadable":
@@ -1943,14 +2171,12 @@ class ForwardReader(Star):
             event.stop_event()
         elif result.error_type == "multimodal_only":
             await self._send_natural_message(
-                event,
-                random.choice(self.NATURAL_RESPONSES["error_multimodal"])
+                event, random.choice(self.NATURAL_RESPONSES["error_multimodal"])
             )
             event.stop_event()
         else:
             await self._send_natural_message(
-                event,
-                self._generate_vague_error_response()
+                event, self._generate_vague_error_response()
             )
             event.stop_event()
 
@@ -1958,35 +2184,42 @@ class ForwardReader(Star):
         """发送自然语言消息"""
         try:
             from astrbot.api.event import MessageChain
+
             msg = MessageChain().message(message)
             await self.context.send_message(event.unified_msg_origin, msg)
         except Exception as e:
             self.slogger.error("send_msg", "send_natural_message", f"发送消息失败: {e}")
 
     async def _append_assistant_text_to_history(
-        self,
-        event: AstrMessageEvent,
-        text: str,
-        trace_id: str,
-        source: str
+        self, event: AstrMessageEvent, text: str, trace_id: str, source: str
     ) -> bool:
         """将助手最终文本幂等写入会话历史，保证分析后可追问。"""
         cleaned = (text or "").strip()
         if not cleaned:
-            self.slogger.warning(trace_id, "context_write", "文本为空，跳过写回", source=source)
+            self.slogger.warning(
+                trace_id, "context_write", "文本为空，跳过写回", source=source
+            )
             return False
 
         cm = getattr(self.context, "conversation_manager", None)
         if not cm:
-            self.slogger.warning(trace_id, "context_write", "conversation_manager 不可用", source=source)
+            self.slogger.warning(
+                trace_id, "context_write", "conversation_manager 不可用", source=source
+            )
             return False
 
         uid = event.unified_msg_origin
         cid = None
 
         try:
-            req = getattr(event, "get_extra", None) and event.get_extra("provider_request")
-            if req and getattr(req, "conversation", None) and getattr(req.conversation, "cid", None):
+            req = getattr(event, "get_extra", None) and event.get_extra(
+                "provider_request"
+            )
+            if (
+                req
+                and getattr(req, "conversation", None)
+                and getattr(req.conversation, "cid", None)
+            ):
                 cid = req.conversation.cid
         except Exception:
             cid = None
@@ -1998,13 +2231,24 @@ class ForwardReader(Star):
                 cid = None
 
         if not cid:
-            self.slogger.warning(trace_id, "context_write", "仅发送成功但未入上下文：无可用会话ID", source=source)
+            self.slogger.warning(
+                trace_id,
+                "context_write",
+                "仅发送成功但未入上下文：无可用会话ID",
+                source=source,
+            )
             return False
 
         try:
             conv = await cm.get_conversation(uid, cid, create_if_not_exists=True)
             if not conv:
-                self.slogger.warning(trace_id, "context_write", "仅发送成功但未入上下文：会话未就绪", source=source, cid=cid)
+                self.slogger.warning(
+                    trace_id,
+                    "context_write",
+                    "仅发送成功但未入上下文：会话未就绪",
+                    source=source,
+                    cid=cid,
+                )
                 return False
 
             msgs = []
@@ -2015,17 +2259,35 @@ class ForwardReader(Star):
 
             if msgs:
                 last = msgs[-1]
-                if isinstance(last, dict) and last.get("role") == "assistant" and (last.get("content") or "").strip() == cleaned:
-                    self.slogger.info(trace_id, "context_write", "已在上下文中（去重命中）", source=source, cid=cid)
+                if (
+                    isinstance(last, dict)
+                    and last.get("role") == "assistant"
+                    and (last.get("content") or "").strip() == cleaned
+                ):
+                    self.slogger.info(
+                        trace_id,
+                        "context_write",
+                        "已在上下文中（去重命中）",
+                        source=source,
+                        cid=cid,
+                    )
                     return True
 
             msgs.append({"role": "assistant", "content": cleaned})
             await cm.update_conversation(uid, cid, history=msgs)
-            self.slogger.info(trace_id, "context_write", "已写入上下文/记忆可读", source=source, cid=cid)
+            self.slogger.info(
+                trace_id,
+                "context_write",
+                "已写入上下文/记忆可读",
+                source=source,
+                cid=cid,
+            )
             return True
 
         except Exception as e:
-            self.slogger.error(trace_id, "context_write", f"写回上下文失败: {e}", source=source)
+            self.slogger.error(
+                trace_id, "context_write", f"写回上下文失败: {e}", source=source
+            )
             return False
 
     @filter.on_llm_response(priority=1)
@@ -2042,10 +2304,14 @@ class ForwardReader(Star):
 
             # 防止事件对象复用造成脏标记干扰后续普通对话
             if track_origin and track_origin != event.unified_msg_origin:
-                self.slogger.info(trace_id, "context_write", "检测到跨会话脏标记，已忽略")
+                self.slogger.info(
+                    trace_id, "context_write", "检测到跨会话脏标记，已忽略"
+                )
                 return
             if track_time and (time.time() - track_time) > 30:
-                self.slogger.info(trace_id, "context_write", "检测到过期追踪标记，已忽略")
+                self.slogger.info(
+                    trace_id, "context_write", "检测到过期追踪标记，已忽略"
+                )
                 return
 
             completion_text = ""
@@ -2068,25 +2334,26 @@ class ForwardReader(Star):
                     completion_text = ""
 
             if not completion_text:
-                self.slogger.warning(trace_id, "context_write", "on_llm_response 无文本，跳过回填")
+                self.slogger.warning(
+                    trace_id, "context_write", "on_llm_response 无文本，跳过回填"
+                )
                 return
 
             ok = await self._append_assistant_text_to_history(
-                event,
-                completion_text,
-                trace_id=trace_id,
-                source="llm_response_hook"
+                event, completion_text, trace_id=trace_id, source="llm_response_hook"
             )
 
             self.slogger.info(
                 trace_id,
                 "context_write",
                 "on_llm_response 回填完成",
-                history_written=ok
+                history_written=ok,
             )
         except Exception as e:
             # 绝不影响主LLM回复链路
-            self.slogger.error("context_hook", "context_write", f"on_llm_response补写异常(已忽略): {e}")
+            self.slogger.error(
+                "context_hook", "context_write", f"on_llm_response补写异常(已忽略): {e}"
+            )
         finally:
             try:
                 if hasattr(event, "_forward_reader_context_track"):
